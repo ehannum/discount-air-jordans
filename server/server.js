@@ -8,22 +8,16 @@ var path = require('path');
 
 // firebase initialization
 var firebase = require('firebase');
-var fKey = process.env.FIREBASE_KEY || null;
 var db = null;
 
 // -- FIREBASE DATABASE SETUP
 
-if (fKey) {
-  firebase.initializeApp({
-    serviceAccount: JSON.parse(fKey),
-    databaseURL: 'https://discount-air-jordans.firebaseio.com/'
-  });
+firebase.initializeApp({
+  databaseURL: 'https://discount-air-jordans.firebaseio.com/'
+});
 
-  db = firebase.database();
-  console.log('Connected and authenticated to Firebase.');
-} else {
-  console.log('Firebase authentication failure: No Private Key found.');
-}
+db = firebase.database();
+console.log('Connected to Firebase, no authentication required.');
 
 // -- SERVE STATIC FILES and JSON
 
@@ -35,11 +29,6 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // -- SHIT
 
 app.get('/trash', function (req, res) {
-  if (!db) {
-    console.log('Error: Firebase authentication failed');
-    res.send('Error: Firebase authentication failed');
-    return;
-  }
 
   var ref = db.ref('posts');
 
@@ -49,11 +38,6 @@ app.get('/trash', function (req, res) {
 });
 
 app.post('/trash', function (req, res) {
-  if (!db) {
-    console.log('Error: Firebase authentication failed');
-    res.send('Error: Firebase authentication failed');
-    return;
-  }
 
   var ref = db.ref('posts');
 
