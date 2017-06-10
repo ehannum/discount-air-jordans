@@ -55,6 +55,9 @@ $(function(){
     for (var i in res) {
       $('.dumpster').contents().find('body').append(res[i].content);
     }
+    $('.dumpster').contents().find('*').each(function(i, item){
+      $(item).css('z-index', Math.round(Math.random() * 1000));
+    });
   }, function(err){
     console.error(err);
   });
