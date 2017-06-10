@@ -3,24 +3,59 @@ $(function(){
     e.preventDefault();
 
     $.post('/trash', {
-      content: ''
+      content: this.content.value
     })
-    .success(function(data){
+    .then(function(data){
       console.log('Thank you father.');
-    })
-    .error(function(err){
+    }, function(err){
       console.error(err);
     });
+
+    init();
 
     return false;
   });
 
-  $('.modal').click(function(e){
-    e.stopPropagation();
-    $('.modal').addClass('open');
+  var init = function () {
+    $('.content').text('<style></style>\n<div></div>\n<script></script>');
+    $('.real-submit').hide();
+    $('.test-cancel').hide();
+  };
+
+  init();
+
+  $('.test-submit').click(function(e){
+    $('.real-submit').show();
+    $('.test-cancel').show();
+    $('.test-submit').hide();
+
+    $('.dumpster').contents().find('body').append('<div id="the-test">' + $('.content').val() + '</div>');
   });
 
-  $(document).click(function(e){
-    $('.modal').removeClass('open');
+  $('.test-cancel').click(function(e){
+    $('.real-submit').hide();
+    $('.test-cancel').hide();
+    $('.test-submit').show();
+
+    $('.dumpster').contents().find('#the-test').remove();
+  });
+
+  $('.icon').click(function(e){
+    if ($('.modal').hasClass('open')) {
+      $('.icon').text('!?');
+      $('.modal').removeClass('open');
+    } else {
+      $('.icon').text('X');
+      $('.modal').addClass('open');
+    }
+  });
+
+  $.get('/trash')
+  .then(function(res){
+    for (var i in res) {
+      $('.dumpster').contents().find('body').append(res[i].content);
+    }
+  }, function(err){
+    console.error(err);
   });
 });
