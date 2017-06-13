@@ -57,6 +57,42 @@ app.post('/trash', function (req, res) {
   );
 });
 
+app.get('/archive', function (req, res) {
+
+  var oldRef = db.ref('posts');
+  var newRef = db.ref('archive');
+
+  oldRef.once('value', function(snap)  {
+    newRef.set( snap.val(), function(error) {
+      if( !error ) {
+        oldRef.remove();
+        res.send('Yeah it looks like that may have actually worked.');
+      } else {
+        console.log(error);
+        res.send(error);
+      }
+    });
+  });
+});
+
+app.get('/unarchive', function (req, res) {
+
+  var oldRef = db.ref('archive');
+  var newRef = db.ref('posts');
+
+  oldRef.once('value', function(snap)  {
+    newRef.set( snap.val(), function(error) {
+      if( !error ) {
+        oldRef.remove();
+        res.send('Yeah it looks like that may have actually worked.');
+      } else {
+        console.log(error);
+        res.send(error);
+      }
+    });
+  });
+});
+
 // -- START SERVER
 
 var port = process.env.PORT || 3030;

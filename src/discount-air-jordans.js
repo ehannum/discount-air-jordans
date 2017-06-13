@@ -28,6 +28,7 @@ $(function(){
     $('.real-submit').show();
     $('.test-cancel').show();
     $('.test-submit').hide();
+    $('.content').prop('disabled', true);
 
     $('.dumpster').contents().find('body').append('<div id="the-test">' + $('.content').val() + '</div>');
   });
@@ -36,6 +37,7 @@ $(function(){
     $('.real-submit').hide();
     $('.test-cancel').hide();
     $('.test-submit').show();
+    $('.content').prop('disabled', false);
 
     $('.dumpster').contents().find('#the-test').remove();
   });
@@ -52,13 +54,85 @@ $(function(){
 
   $.get('/trash')
   .then(function(res){
+    var total = Object.keys(res).length;
+    var completed = 0;
+
     for (var i in res) {
-      $('.dumpster').contents().find('body').append(res[i].content);
+      quarantineScripts(res[i].content, function (str, err) {
+        if (err) {
+          // script contains infinite loop, delete it.
+          // By the way, breaking the site is totally the point but also that's
+          // just the least interesting way to break it. Try something else.
+        } else {
+          $('.dumpster').contents().find('body').append(str);
+        }
+        if (++completed === total) {
+          $('.dumpster').contents().find('*').each(function(i, item){
+            $(item).css('z-index', Math.round(Math.random() * 1000));
+          });
+        }
+      });
     }
-    $('.dumpster').contents().find('*').each(function(i, item){
-      $(item).css('z-index', Math.round(Math.random() * 1000));
-    });
   }, function(err){
     console.error(err);
   });
+
+  var quarantineScripts = function (str, onSafe) {
+      var total = 0;
+      var completed = 0;
+      var broken = false;
+      var scripts = str.split(/<\/?script(?:\s+\w+=".+"\s*)*>/);
+
+      for (var i = 0; i < scripts.length; i++) {
+        if (i%2 && !!(scripts[i].trim())) {
+          total++;
+          limitEval(scripts[i], function(err){
+            if (!err) {
+              broken = true;
+            }
+            if (++completed === total) {
+              onSafe(str, broken);
+            }
+          });
+        }
+      }
+
+      if (total === 0) {
+        onSafe(str);
+      }
+  };
+
+  var limitEval = function (code, onStop, timeout) {
+    var id = Math.random() + 1;
+    var blob = new Blob(
+        ['onmessage=function(a){a=a.data;postMessage({i:a.i+1});postMessage({r:eval.call(this,a.c),i:a.i})};'],
+        { type:'text/javascript' }
+      );
+    var myWorker = new Worker(URL.createObjectURL(blob));
+
+    function onDone() {
+      URL.revokeObjectURL(blob);
+      onStop.apply(this, arguments);
+    }
+
+    myWorker.onmessage = function (data) {
+      data = data.data;
+      if (data) {
+        if (data.i === id) { // we're done
+          id = 0;
+          onDone(true, data.r);
+        }
+        else if (data.i === id + 1) { // the worker started
+          setTimeout(function() {
+            if (id) {
+              myWorker.terminate();
+              onDone(false);
+            }
+          }, timeout || 2000);
+        }
+      }
+    };
+
+    myWorker.postMessage({ c: 'try{' + code + '}catch(e){}', i: id });
+  };
 });
