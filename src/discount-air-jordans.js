@@ -4,8 +4,7 @@ $(function(){
 
     $.post('/trash', {
       content: this.content.value
-    })
-    .then(function(data){
+    }).then(function(){
       console.log('Thank you father.');
     }, function(err){
       console.error(err);
@@ -18,6 +17,7 @@ $(function(){
 
   var init = function () {
     $('.content').text('<style></style>\n<div></div>\n<script></script>');
+    $('.content').prop('disabled', false);
     $('.real-submit').hide();
     $('.test-cancel').hide();
   };
@@ -58,11 +58,15 @@ $(function(){
     var completed = 0;
 
     for (var i in res) {
-      quarantineScripts(res[i].content, function (str, err) {
+      quarantineScripts(res[i].content, i, function (str, id, err) {
         if (err) {
-          // script contains infinite loop, delete it.
-          // By the way, breaking the site is totally the point but also that's
-          // just the least interesting way to break it. Try something else.
+          $.post('/delete', {
+            id: id
+          }).then(function(){
+            console.log('Okay, an infinite loop really? That\'s just boring. Break shit but break it better than that.');
+          }, function(err){
+            console.error(err);
+          });
         } else {
           $('.dumpster').contents().find('body').append(str);
         }
@@ -77,29 +81,29 @@ $(function(){
     console.error(err);
   });
 
-  var quarantineScripts = function (str, onSafe) {
-      var total = 0;
-      var completed = 0;
-      var broken = false;
-      var scripts = str.split(/<\/?script(?:\s+\w+=".+"\s*)*>/);
+  var quarantineScripts = function (str, id, onSafe) {
+    var total = 0;
+    var completed = 0;
+    var broken = false;
+    var scripts = str.split(/<\/?script(?:\s+\w+=".+"\s*)*>/);
 
-      for (var i = 0; i < scripts.length; i++) {
-        if (i%2 && !!(scripts[i].trim())) {
-          total++;
-          limitEval(scripts[i], function(err){
-            if (!err) {
-              broken = true;
-            }
-            if (++completed === total) {
-              onSafe(str, broken);
-            }
-          });
-        }
+    for (var i = 0; i < scripts.length; i++) {
+      if (i%2 && !!(scripts[i].trim())) {
+        total++;
+        limitEval(scripts[i], function(err){
+          if (!err) {
+            broken = true;
+          }
+          if (++completed === total) {
+            onSafe(str, id, broken);
+          }
+        });
       }
+    }
 
-      if (total === 0) {
-        onSafe(str);
-      }
+    if (total === 0) {
+      onSafe(str);
+    }
   };
 
   var limitEval = function (code, onStop, timeout) {

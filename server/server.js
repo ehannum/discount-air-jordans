@@ -40,7 +40,6 @@ app.get('/trash', function (req, res) {
 app.post('/trash', function (req, res) {
 
   var ref = db.ref('posts');
-
   var postRef = ref.push();
 
   postRef.set(
@@ -55,6 +54,24 @@ app.post('/trash', function (req, res) {
       }
     }
   );
+});
+
+app.post('/delete', function (req, res) {
+
+  var oldRef = db.ref('posts').child(req.body.id);
+  var newRef = db.ref('archive').push();
+
+  oldRef.once('value', function(snap)  {
+    newRef.set( snap.val(), function(error) {
+      if( !error ) {
+        oldRef.remove();
+        res.send('Yeah it looks like that may have actually worked.');
+      } else {
+        console.log(error);
+        res.send(error);
+      }
+    });
+  });
 });
 
 app.get('/archive', function (req, res) {
